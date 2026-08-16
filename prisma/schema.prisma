@@ -1,0 +1,847 @@
+// =============================================================================
+// School website — Prisma schema
+//
+// Authoritative specification: BLUEPRINT/17_DATABASE_SCHEMA.md
+//
+// EXACTLY 18 domain entities. Entities are not added silently — an entity that
+// cannot justify itself is not built (16_DATABASE_ARCHITECTURE).
+//
+// One infrastructure table (`Session`) exists in addition to the 18 domain
+// entities. It is NOT a new domain concept: it is the storage required by the
+// owner-approved decision "database-backed, revocable sessions" (ADR-0004).
+// Recorded explicitly in ADR-0011 rather than added quietly.
+//
+// Deliberately NOT modelled: Role/Permission tables (three fixed roles as an
+// enum), generic Page/SEO tables, Application/ApplicationDocument, Student and
+// Parent accounts, revision history, separate Address table, Account and
+// VerificationToken (there are no OAuth providers and no email/magic-link
+// flows — a minimal custom Auth.js adapter is used instead).
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Connection URLs are NOT declared here. In the Prisma 7 line `url` and
+// `directUrl` are no longer schema properties — the migration connection lives
+// in `prisma.config.ts` and the runtime connection is supplied by the driver
+// adapter passed to `new PrismaClient({ adapter })` (see lib/db/prisma.ts).
+//
+//   DIRECT_URL   (unpooled) → migrations, via prisma.config.ts
+//   DATABASE_URL (pooled)   → application runtime, via PrismaNeon adapter
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum Role {
+  SUPER_ADMIN
+  EDITOR
+  ADMISSIONS_MANAGER
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// ⚠️ HARD INVARIANT: the school serves Nursery–Class 10.
+/// There is no CLASS_11, no CLASS_12, no streams and no senior secondary.
+/// Mirrored by lib/constants/classLevels.ts, kept in step by a unit test.
+enum ClassLevel {
+  NURSERY
+  LKG
+  UKG
+  CLASS_1
+  CLASS_2
+  CLASS_3
+  CLASS_4
+  CLASS_5
+  CLASS_6
+  CLASS_7
+  CLASS_8
+  CLASS_9
+  CLASS_10
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum NoticeCategory {
+  ACADEMIC
+  EXAMINATION
+  EVENT
+  HOLIDAY
+  CBSE
+  GENERAL
+}
+
+enum DocumentCategory {
+  ADMISSION
+  ACADEMIC
+  CALENDAR
+  CIRCULAR
+  POLICY
+  MANDATORY_DISCLOSURE
+  FORM
+  OTHER
+}
+
+enum AchievementType {
+  ACADEMIC
+  SPORTS
+  OLYMPIAD
+  CULTURAL
+  SCHOOL
+}
+
+enum AlbumCategory {
+  CAMPUS
+  SPORTS
+  CULTURAL
+  ACADEMIC
+  EVENTS
+  CELEBRATIONS
+}
+
+enum TestimonialAuthor {
+  PARENT
+  ALUMNI
+  STUDENT
+}
+
+enum FacilityCategory {
+  ACADEMIC
+  SPORTS
+  ARTS
+  SUPPORT
+  SAFETY
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+  UNPUBLISH
+  LOGIN
+  LOGIN_FAILED
+  ROLE_CHANGE
+  STATUS_CHANGE
+  EXPORT
+}
+
+// =============================================================================
+// 1. User — admin accounts. NO PUBLIC USER ACCOUNTS EXIST.
+// =============================================================================
+
+model User {
+  id String @id @default(cuid())
+
+  /// Case-insensitive. Stored citext so two accounts cannot differ by casing
+  /// alone; also normalised to lowercase on write.
+  email String @unique @db.Citext
+
+  name String
+
+  /// argon2id. NEVER selected into any query result that leaves the server.
+  passwordHash String
+
+  role     Role    @default(EDITOR)
+  isActive Boolean @default(true)
+
+  /// Every session issued at or before this instant is invalid. Bumped on
+  /// deactivation, role change and password reset, so revocation is immediate
+  /// rather than "whenever the token happens to expire".
+  sessionsValidFrom DateTime @default(now())
+
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Accounts are deactivated, never deleted — deleting a user would orphan
+  // their audit trail, which defeats the purpose of having one.
+
+  sessions      Session[]
+  news          News[]
+  events        Event[]
+  notices       Notice[]
+  documents     Document[]
+  achievements  Achievement[]
+  testimonials  Testimonial[]
+  facilities    Facility[]
+  galleryAlbums GalleryAlbum[]
+  faculty       Faculty[]
+  mediaAssets   MediaAsset[]
+  siteSettings  SiteSetting[]
+
+  assignedEnquiries AdmissionEnquiry[]
+  enquiryNotes      EnquiryNote[]
+  auditEntries      AuditLog[]
+
+  @@index([role, isActive])
+  @@map("users")
+}
+
+// =============================================================================
+// Session — infrastructure, not a domain entity.
+//
+// Database-backed so that deactivating a departing staff member takes effect
+// AT ONCE. That is the entire reason this table exists rather than a stateless
+// token (ADR-0004, 19_AUTHORIZATION_AND_ROLES).
+// =============================================================================
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  /// Absolute lifetime cap (24h) — distinct from `expires`, which slides with
+  /// activity for the 8h idle timeout.
+  absoluteExpiry DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires])
+  @@map("sessions")
+}
+
+// =============================================================================
+// 2. Department
+// =============================================================================
+
+model Department {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  description  String?
+  displayOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  faculty Faculty[]
+
+  @@index([displayOrder])
+  @@map("departments")
+}
+
+// =============================================================================
+// 3. Faculty
+//
+// Leadership is a boolean here, not a separate entity — leadership ARE faculty,
+// and duplicating them would create two records to keep in sync.
+// =============================================================================
+
+model Faculty {
+  id              String  @id @default(cuid())
+  slug            String  @unique
+  name            String
+  designation     String
+  qualification   String?
+  experienceYears Int?
+  bio             String?
+
+  photoId      String?
+  departmentId String?
+
+  isLeadership Boolean @default(false)
+  displayOrder Int     @default(0)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  seoTitle    String?
+  seoDescription String?
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  photo      MediaAsset? @relation(fields: [photoId], references: [id], onDelete: SetNull)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdBy  User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([departmentId, displayOrder])
+  @@index([isLeadership, displayOrder])
+  @@index([status, deletedAt])
+  @@map("faculty")
+}
+
+// =============================================================================
+// 4. News — prospective-facing, long-lived, editorial. Distinct from Notice.
+// =============================================================================
+
+model News {
+  id      String  @id @default(cuid())
+  slug    String  @unique
+  title   String
+  excerpt String?
+  body    String
+
+  coverImageId String?
+
+  /// Free-text tag in MVP. A NewsCategory table is OPTIONAL, not rejected —
+  /// promoting this to a table later is a small additive migration.
+  category String?
+
+  featured Boolean @default(false)
+
+  /// Display byline, deliberately distinct from `createdById` (who typed it).
+  authorName String?
+
+  status         ContentStatus @default(DRAFT)
+  publishedAt    DateTime?
+  seoTitle       String?
+  seoDescription String?
+  createdById    String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  coverImage MediaAsset? @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
+  createdBy  User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([featured, publishedAt(sort: Desc)])
+  @@index([deletedAt])
+  @@map("news")
+}
+
+// =============================================================================
+// 5. Event
+//
+// Past events are retained, never deleted — an event archive is a credibility
+// signal and an SEO asset.
+// =============================================================================
+
+model Event {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  description String
+  startDate   DateTime
+  /// CHECK (endDate IS NULL OR endDate >= startDate) — added in migration SQL,
+  /// because Prisma schema cannot express CHECK constraints.
+  endDate     DateTime?
+  venue       String?
+
+  coverImageId String?
+
+  /// Surfaces the event on /academic-calendar.
+  isAcademicCalendar Boolean @default(false)
+
+  status         ContentStatus @default(DRAFT)
+  publishedAt    DateTime?
+  seoTitle       String?
+  seoDescription String?
+  createdById    String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  coverImage MediaAsset? @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
+  createdBy  User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status, startDate])
+  @@index([isAcademicCalendar, startDate])
+  @@index([deletedAt])
+  @@map("events")
+}
+
+// =============================================================================
+// 6. GalleryAlbum
+// =============================================================================
+
+model GalleryAlbum {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  title       String
+  description String?
+  category    AlbumCategory
+  eventDate   DateTime?
+
+  coverImageId String?
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  coverImage MediaAsset?    @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
+  createdBy  User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  images     GalleryImage[]
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([category, publishedAt(sort: Desc)])
+  @@index([deletedAt])
+  @@map("gallery_albums")
+}
+
+// =============================================================================
+// 7. GalleryImage
+//
+// ⚠️ Contains identifiable minors. Consent basis lives on MediaAsset.
+// See BLUEPRINT/48_MEDIA_CONSENT_AND_CHILD_SAFETY.md
+// =============================================================================
+
+model GalleryImage {
+  id           String @id @default(cuid())
+  albumId      String
+  mediaAssetId String
+
+  /// ⚠️ Avoid full names of students. Class or year group is acceptable.
+  caption      String?
+  displayOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  album      GalleryAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset   @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@unique([albumId, mediaAssetId])
+  @@index([albumId, displayOrder])
+  @@map("gallery_images")
+}
+
+// =============================================================================
+// 8. Achievement
+//
+// ⚠️ Naming a student publicly is a child-privacy decision, not just a content
+// choice. See BLUEPRINT/48_MEDIA_CONSENT_AND_CHILD_SAFETY.md
+// =============================================================================
+
+model Achievement {
+  id          String          @id @default(cuid())
+  title       String
+  description String?
+  type        AchievementType
+
+  /// ⚠️ Student or team name. Requires specific consent for that recognition.
+  achieverName String?
+
+  /// School / district / state / national / international.
+  level      String?
+  achievedOn DateTime
+  imageId    String?
+  featured   Boolean  @default(false)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  image     MediaAsset? @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  createdBy User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status, achievedOn(sort: Desc)])
+  @@index([type, achievedOn(sort: Desc)])
+  @@index([featured, achievedOn(sort: Desc)])
+  @@index([deletedAt])
+  @@map("achievements")
+}
+
+// =============================================================================
+// 9. Notice — operational, time-sensitive, expiry-aware. Distinct from News.
+//
+// NO SLUG. Notices are consumed in a list, not deep-linked; generating URLs for
+// ephemeral operational content creates permanent URLs for temporary content.
+//
+// `expiresAt` is the direct answer to the six-year-old live notice observed in
+// reference research (45_RESEARCH_SOURCES F-3).
+// =============================================================================
+
+model Notice {
+  id       String         @id @default(cuid())
+  title    String
+  body     String
+  category NoticeCategory
+
+  attachmentId String?
+  pinned       Boolean @default(false)
+
+  /// Filtered AT QUERY TIME. An expired notice is worse than no notice.
+  expiresAt DateTime?
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  attachment MediaAsset? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  createdBy  User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status, category, publishedAt(sort: Desc)])
+  @@index([expiresAt])
+  @@index([pinned, publishedAt(sort: Desc)])
+  @@index([deletedAt])
+  @@map("notices")
+}
+
+// =============================================================================
+// 10. Document — downloadable forms, calendars, circulars.
+// =============================================================================
+
+model Document {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  category    DocumentCategory
+
+  mediaAssetId String
+
+  /// Bytes — shown before the tap, so a parent on 4G knows what they are about
+  /// to download.
+  fileSize Int
+  fileType String
+
+  /// Disambiguates versions ("Fee structure 2026-27").
+  academicYear String?
+  displayOrder Int     @default(0)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+  createdBy  User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status, category, displayOrder])
+  @@index([deletedAt])
+  @@map("documents")
+}
+
+// =============================================================================
+// 11. AdmissionEnquiry
+//
+// ⚠️ CONTAINS PERSONAL DATA, INCLUDING DATA ABOUT A MINOR.
+//
+// NOT soft-deleted. Deletion here is a genuine privacy operation and must
+// actually remove data. Retention period is an OPEN DECISION for the school
+// (OD-011) — the architecture is built so the period is configurable, and no
+// period is invented here.
+//
+// EDITOR must not reach this table by any route.
+// =============================================================================
+
+model AdmissionEnquiry {
+  id String @id @default(cuid())
+
+  parentName String
+  /// Normalised to 10 digits on write.
+  phone      String
+  /// Lowercased on write.
+  email      String
+
+  /// OPTIONAL BY DESIGN — minimises data held about a minor.
+  studentName String?
+
+  classApplying ClassLevel
+  academicYear  String
+  locality      String?
+  message       String?
+
+  status       EnquiryStatus @default(NEW)
+  assignedToId String?
+
+  /// `website` / `walk-in`.
+  source String? @default("website")
+
+  /// When the parent gave consent. Not nullable — an enquiry cannot exist
+  /// without it.
+  consentAt DateTime
+
+  contactedAt DateTime?
+  resolvedAt  DateTime?
+  closedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedTo User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  notes      EnquiryNote[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([assignedToId, status])
+  @@index([academicYear, status])
+  @@index([createdAt])
+  @@map("admission_enquiries")
+}
+
+// =============================================================================
+// 12. EnquiryNote
+//
+// A separate table rather than a JSON blob so every note carries a real author
+// and timestamp — the mechanism that stops two staff members ringing the same
+// parent (journey J8).
+// =============================================================================
+
+model EnquiryNote {
+  id        String @id @default(cuid())
+  enquiryId String
+  authorId  String
+  body      String
+
+  createdAt DateTime @default(now())
+
+  enquiry AdmissionEnquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  author  User             @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([enquiryId, createdAt(sort: Desc)])
+  @@map("enquiry_notes")
+}
+
+// =============================================================================
+// 13. Testimonial
+//
+// ⚠️ Must be REAL and ATTRIBUTABLE, with the author's permission. Fabricated
+// testimonials on a real school's site are a misrepresentation to families
+// choosing a school (CR-002).
+// =============================================================================
+
+model Testimonial {
+  id           String            @id @default(cuid())
+  quote        String
+  authorName   String
+  authorType   TestimonialAuthor
+  /// e.g. "Parent, Class 5".
+  authorDetail String?
+
+  photoId  String?
+  featured Boolean @default(false)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  photo     MediaAsset? @relation(fields: [photoId], references: [id], onDelete: SetNull)
+  createdBy User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status, featured])
+  @@index([deletedAt])
+  @@map("testimonials")
+}
+
+// =============================================================================
+// 14. Facility
+//
+// Administered as a SETTINGS SUB-RESOURCE, SUPER_ADMIN only (decision D-B23).
+// There is no /admin/facilities route. Roughly a dozen records changed about
+// once a year does not justify a full CRUD module.
+// =============================================================================
+
+model Facility {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  name        String
+  description String
+  category    FacilityCategory
+
+  imageId      String?
+  displayOrder Int     @default(0)
+
+  status ContentStatus @default(DRAFT)
+
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  image     MediaAsset? @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  createdBy User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([category, displayOrder])
+  @@index([status, deletedAt])
+  @@map("facilities")
+}
+
+// =============================================================================
+// 15. MediaAsset — central record for every uploaded file.
+//
+// `consentBasis` and `containsMinors` exist because a school gallery is full of
+// children. EXIF and geolocation are stripped at upload, with no opt-out
+// (NFR-052). See BLUEPRINT/48_MEDIA_CONSENT_AND_CHILD_SAFETY.md
+// =============================================================================
+
+model MediaAsset {
+  id       String @id @default(cuid())
+  url      String
+  publicId String @unique
+
+  fileName String
+  mimeType String
+  fileSize Int
+
+  /// Images only. Present so width/height can be emitted and CLS avoided.
+  width  Int?
+  height Int?
+
+  /// ⚠️ REQUIRED BEFORE PUBLISH (AR-009). Describes the ACTIVITY.
+  /// Must never name a child — alt text is machine-readable and indexable.
+  altText String?
+  caption String?
+
+  /// ⚠️ Child-imagery consent record, e.g.
+  /// "Admission media consent 2026-27; exclusion list checked 2026-08-14".
+  /// The system cannot VERIFY consent — it has no student records and no
+  /// exclusion list. It can only ensure the question is asked, the answer
+  /// recorded, and the responsible person identifiable afterwards.
+  consentBasis String?
+
+  /// Drives the consent-confirmation step before publication.
+  containsMinors Boolean @default(false)
+
+  /// Confirms EXIF/GPS stripping actually ran for this asset, so the control
+  /// is auditable per-asset rather than merely configured once.
+  metadataStripped Boolean @default(false)
+
+  uploadedById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  galleryImages GalleryImage[]
+  newsCovers    News[]
+  eventCovers   Event[]
+  albumCovers   GalleryAlbum[]
+  facultyPhotos Faculty[]
+  noticeFiles   Notice[]
+  documentFiles Document[]
+  achievementImages Achievement[]
+  testimonialPhotos Testimonial[]
+  facilityImages    Facility[]
+
+  @@index([mimeType, createdAt(sort: Desc)])
+  @@index([containsMinors])
+  @@index([deletedAt])
+  @@map("media_assets")
+}
+
+// =============================================================================
+// 16. SiteSetting — key/value store for editable global configuration.
+//
+// GLOBAL SEO lives here; ENTITY SEO lives on the entities. Conflating the two
+// was a specific review correction.
+//
+// ⚠️ All values seed as [PLACEHOLDER] tokens. NO INVENTED SCHOOL FACTS.
+// =============================================================================
+
+model SiteSetting {
+  key   String @id
+  value String
+
+  /// contact / stats / seo / admissions / social.
+  group String
+
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([group])
+  @@map("site_settings")
+}
+
+// =============================================================================
+// 17. AuditLog — APPEND-ONLY.
+//
+// ⚠️ NEVER CONTAINS ENQUIRY PII. It records that enquiry #123 moved to
+// CONTACTED by user #4 — never the parent's phone number or message.
+// Otherwise the audit log becomes a second, less-protected copy of personal
+// data.
+//
+// Append-only is enforced by a database trigger (migration SQL), not merely by
+// convention in application code.
+// =============================================================================
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  /// SetNull so history survives user deletion — though users are deactivated,
+  /// never deleted.
+  actorId String?
+
+  /// Denormalised snapshot, so the entry stays readable if the account changes.
+  actorEmail String
+
+  action     AuditAction
+  entityType String
+  entityId   String
+
+  /// Human-readable. ⚠️ Must not contain PII.
+  summary String?
+
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// 18. SlugHistory — APPEND-ONLY.
+//
+// Written automatically whenever a published slug changes. proxy.ts consults it
+// to issue a permanent 301, so an old URL — possibly shared in a parent
+// WhatsApp group months earlier — never 404s (NFR-028).
+//
+// Polymorphic on purpose: it holds only a lookup key, has no relational
+// obligations, and four near-identical tables would be worse.
+// =============================================================================
+
+model SlugHistory {
+  id String @id @default(cuid())
+
+  /// news / events / gallery / faculty.
+  entityType String
+  entityId   String
+  oldSlug    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([entityType, oldSlug])
+  @@index([entityId])
+  @@map("slug_history")
+}
