@@ -223,6 +223,69 @@ Route (app)      Revalidate  Expire
 
 ---
 
+## IF-009 — Database exists, migrations applied, invariants verified
+
+**Verified 2026-08-17** against **PostgreSQL 17** (local container; production Neon project not yet created).
+
+Two migrations applied cleanly: `20260816000000_init` and `20260816000100_invariants`.
+
+| Verified by execution | Result |
+|---|---|
+| 18 domain tables + `sessions` present | ✅ 20 tables incl. `_prisma_migrations` |
+| `ClassLevel` enum values | ✅ exactly 13 — `NURSERY` … `CLASS_10`, **no CLASS_11/12** |
+| `UPDATE` on `audit_logs` | ✅ **rejected by trigger** |
+| `DELETE` on `audit_logs` | ✅ **rejected by trigger** |
+| Event `endDate < startDate` | ✅ rejected by CHECK |
+| `PUBLISHED` news with NULL `publishedAt` | ✅ rejected by CHECK |
+| `Admin@X` vs `admin@x` uniqueness | ✅ rejected — citext works |
+| CHECK constraints / triggers | ✅ 15 / 3 |
+
+Seed runs and is idempotent: 26 site settings (**all bracketed placeholders**), 9 CBSE departments, one `SUPER_ADMIN` from environment variables. **No sample articles, faculty, statistics or testimonials were created.**
+
+---
+
+## IF-010 — Authentication verified end to end against a running server
+
+**Verified 2026-08-17** — `tests/verification/auth-flow.mjs`, 12/12 passing.
+
+CSRF handshake · wrong password rejected · signed-out `/admin` redirects (307) · correct password accepted · session cookie issued (`authjs.session-token`) · `/admin` renders when signed in · `SUPER_ADMIN` reaches `/admin/users`, `/admin/audit-log`, `/admin/enquiries` · session resolves to the seeded account and carries role `SUPER_ADMIN`.
+
+---
+
+## IF-011 — ADR-0011 verified: sessions are database-backed and revocation is immediate
+
+**Verified 2026-08-17** — `tests/verification/session-revocation.mjs`, 6/6 passing.
+
+This is the claim most worth proving rather than asserting, because [ADR-0011](../HISTORY/DECISIONS/ADR-0011-SESSION-STORAGE-MECHANISM.md) resolved a real conflict between two approved requirements.
+
+| Check | Result |
+|---|---|
+| Session exists as a row in `sessions` | ✅ real server-side state |
+| `absoluteExpiry > expires` | ✅ 24h absolute cap distinct from the 8h idle window |
+| Deleting the row revokes access **on the very next request**, same cookie still sent | ✅ 307 redirect |
+| `/api/auth/session` reports signed out | ✅ no user |
+
+> The test deliberately keeps sending the **same cookie** after deleting the row. If access had continued, the session would have been a stateless token wearing a database's clothes, and the approved "revocable sessions" requirement would not actually be met.
+
+---
+
+## IF-012 — Dev server runs; routes behave as designed
+
+**Verified 2026-08-17** — `next dev`, Next.js 16.3.1 (Turbopack), ready in ~1.1s, Cache Components enabled.
+
+| Route | Response |
+|---|---|
+| `/` | 200 |
+| `/admin/login` | 200 |
+| `/admin` (signed out) | **307 → login** |
+| `/api/auth/providers` | 200 |
+
+Production build route classification matches the approved caching architecture: `/` static, `/admin/*` dynamic (`ƒ`), `/admin/login` and detail routes partially prerendered (`◐`).
+
+**Next.js agent-rules generation declined** (`agentRules: false`). It writes `AGENTS.md` and `CLAUDE.md` at the repository root; a second, auto-regenerated set of instructions would drift from [99_CLAUDE_WORKING_RULES](99_CLAUDE_WORKING_RULES.md), which is the authoritative guide for future sessions.
+
+---
+
 ## Standing rule for this document
 
 An entry is added **only after the thing exists and has been observed** — a command was run, output was read, a file was created. Plans, intentions and approvals do not belong here; they belong in [49_DECISION_REGISTER](49_DECISION_REGISTER.md) and [41_PENDING_WORK](41_PENDING_WORK.md).
