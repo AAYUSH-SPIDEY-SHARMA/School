@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 import { serverEnv } from '@/lib/env';
@@ -24,14 +25,31 @@ import { serverEnv } from '@/lib/env';
  * They are not interchangeable.
  */
 
+/**
+ * Neon's driver speaks to Neon's endpoints; it cannot talk to a plain Postgres
+ * on localhost. Production is Neon, but local development and integration tests
+ * run against a normal Postgres container, so the adapter is chosen from the
+ * connection string.
+ *
+ * This is a development affordance, NOT a change to the approved database
+ * decision: production remains PostgreSQL on Neon (D-A3a). Both adapters speak
+ * to the same engine, so the SQL, the migrations and the constraints are
+ * identical either way.
+ */
+function isNeonConnection(connectionString: string): boolean {
+  return connectionString.includes('neon.tech');
+}
+
 function createPrismaClient(): PrismaClient {
+  const connectionString = serverEnv.DATABASE_URL;
+
   // The WebSocket pool adapter is used rather than the HTTP one because the
   // write paths need interactive transactions — a slug change must write
   // SlugHistory and update the entity atomically, or an interrupted request
   // leaves a dangling redirect.
-  const adapter = new PrismaNeon({
-    connectionString: serverEnv.DATABASE_URL,
-  });
+  const adapter = isNeonConnection(connectionString)
+    ? new PrismaNeon({ connectionString })
+    : new PrismaPg({ connectionString });
 
   return new PrismaClient({
     adapter,
