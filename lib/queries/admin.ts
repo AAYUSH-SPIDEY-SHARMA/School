@@ -103,6 +103,24 @@ export async function getNewsForEdit(id: string) {
   });
 }
 
+export async function getNoticeForEdit(id: string) {
+  await requireAuth(CONTENT_ROLES);
+
+  return db.notice.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      body: true,
+      category: true,
+      attachmentId: true,
+      pinned: true,
+      expiresAt: true,
+      status: true,
+    },
+  });
+}
+
 export async function listNoticesForAdmin(options: AdminListOptions = {}) {
   await requireAuth(CONTENT_ROLES);
 

@@ -124,6 +124,8 @@ export const noticeSchema = z.object({
 
 export const noticeUpdateSchema = noticeSchema.extend({ id: cuid });
 
+export type NoticeFormValues = z.input<typeof noticeSchema>;
+
 /* ── Gallery ──────────────────────────────────────────────────────────────── */
 
 export const albumSchema = z.object({
