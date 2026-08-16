@@ -277,7 +277,19 @@ export const publishSchema = z.object({
   publish: z.boolean(),
 });
 
-export type NewsInput = z.infer<typeof newsSchema>;
+/**
+ * Two types per schema, and the difference matters.
+ *
+ * `.default()` makes a field OPTIONAL on the way in and GUARANTEED on the way
+ * out. React Hook Form types its default values against the input shape and its
+ * submit handler against the output shape, so conflating them produces an
+ * error that reads as a resolver mismatch and is genuinely confusing.
+ *
+ *   *FormValues — what the form holds  (`featured?: boolean`)
+ *   *Input      — what the action gets (`featured: boolean`)
+ */
+export type NewsFormValues = z.input<typeof newsSchema>;
+export type NewsInput = z.output<typeof newsSchema>;
 export type EventInput = z.infer<typeof eventSchema>;
 export type NoticeInput = z.infer<typeof noticeSchema>;
 export type AlbumInput = z.infer<typeof albumSchema>;
