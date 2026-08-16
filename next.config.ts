@@ -29,6 +29,14 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  // Next.js offers to generate AGENTS.md / CLAUDE.md describing framework
+  // conventions. Declined: this repository already has an authoritative guide
+  // for future sessions in BLUEPRINT/99_CLAUDE_WORKING_RULES.md, and a second,
+  // auto-regenerated set of instructions at the root would drift from it
+  // silently — exactly the documentation drift the change-management rules
+  // exist to prevent.
+  agentRules: false,
+
   // Fail the production build on type errors rather than shipping them.
   //
   // There is no `eslint` key here: the Next.js 16 line removed built-in lint
