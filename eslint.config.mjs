@@ -61,14 +61,20 @@ const config = [
      */
     files: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-imports': [
+      // The TypeScript-aware variant, so `allowTypeImports` is available.
+      // A type-only import of `Role` is erased at compile time and reaches no
+      // database — banning it would push components to redeclare enum types by
+      // hand, which is how a role string silently drifts out of sync with the
+      // schema. The runtime import is what must stay blocked.
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           patterns: [
             {
               group: ['@prisma/client', '@/lib/db/*', '**/lib/db/*'],
+              allowTypeImports: true,
               message:
-                'Components and pages must not import the ORM. Reads go through lib/queries, writes through lib/actions (15_BACKEND_ARCHITECTURE).',
+                'Components and pages must not import the ORM at runtime. Reads go through lib/queries, writes through lib/actions (15_BACKEND_ARCHITECTURE). Type-only imports are fine.',
             },
           ],
         },

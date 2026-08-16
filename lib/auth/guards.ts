@@ -102,8 +102,15 @@ export async function requireAuth(
  * arrays drift: one action gets a role added and thirty others do not.
  */
 
-/** Create, edit, publish and delete content. */
-export const CONTENT_ROLES = ['SUPER_ADMIN', 'EDITOR'] as const satisfies readonly Role[];
+/**
+ * Create, edit, publish and delete content.
+ *
+ * Typed as `readonly Role[]` rather than a narrow tuple so these sets can also
+ * be used with `.includes(user.role)` for render decisions. A literal tuple
+ * would reject any `Role` not already in it, which is the opposite of what a
+ * membership test needs.
+ */
+export const CONTENT_ROLES: readonly Role[] = ['SUPER_ADMIN', 'EDITOR'];
 
 /**
  * Enquiry access — parent and child personal data.
@@ -112,10 +119,10 @@ export const CONTENT_ROLES = ['SUPER_ADMIN', 'EDITOR'] as const satisfies readon
  * report has no reason to see a parent's phone number. This is the one role
  * boundary in the system that earns its complexity, and it is a hard invariant.
  */
-export const ENQUIRY_ROLES = [
+export const ENQUIRY_ROLES: readonly Role[] = [
   'SUPER_ADMIN',
   'ADMISSIONS_MANAGER',
-] as const satisfies readonly Role[];
+];
 
 /**
  * Settings, users, facilities, audit log.
@@ -125,14 +132,14 @@ export const ENQUIRY_ROLES = [
  * route to exercise it — and "fixing" that by widening Settings access to
  * EDITOR would hand content editors global site configuration. Do neither.
  */
-export const ADMIN_ONLY = ['SUPER_ADMIN'] as const satisfies readonly Role[];
+export const ADMIN_ONLY: readonly Role[] = ['SUPER_ADMIN'];
 
 /** Every signed-in staff member. Use only for genuinely shared surfaces. */
-export const ANY_STAFF = [
+export const ANY_STAFF: readonly Role[] = [
   'SUPER_ADMIN',
   'EDITOR',
   'ADMISSIONS_MANAGER',
-] as const satisfies readonly Role[];
+];
 
 /**
  * Non-throwing check, for deciding what to render.
