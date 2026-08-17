@@ -5,6 +5,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 import { SCHOOL_CONFIRMED, SCHOOL_PLACEHOLDERS } from '../lib/constants/site';
+import { seedNavigation, seedPages } from './seedPages';
 
 /**
  * Database seed.
@@ -204,6 +205,8 @@ async function main(): Promise<void> {
 
   await seedSiteSettings();
   await seedDepartments();
+  await seedPages(prisma);
+  await seedNavigation(prisma);
   await seedFirstAdmin();
 
   console.warn('Seed complete.');

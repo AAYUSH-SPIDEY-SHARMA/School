@@ -4,7 +4,7 @@ import type { MediaKind, MediaSource, Prisma } from '@prisma/client';
 
 import { CONTENT_ROLES, requireAuth } from '@/lib/auth/guards';
 import { db } from '@/lib/db/prisma';
-import { adminMediaSelect } from '@/lib/queries/selects';
+import { adminMediaSelect, publicMediaSelect } from '@/lib/queries/selects';
 
 /**
  * Media library reads.
@@ -76,6 +76,30 @@ export async function listMedia(options: MediaListOptions = {}) {
     pageCount: Math.max(1, Math.ceil(total / pageSize)),
   };
 }
+
+/**
+ * Resolve several media assets at once, for a page's sections.
+ *
+ * One query rather than one per section: a page with a hero, three images and a
+ * video would otherwise issue five round trips to render a single page.
+ *
+ * Public-safe fields only — `consentBasis` and `containsMinors` are internal
+ * safeguarding records and are deliberately absent.
+ */
+export async function getPublicMediaByIds(ids: readonly string[]) {
+  if (ids.length === 0) return new Map<string, PublicMedia>();
+
+  const assets = await db.mediaAsset.findMany({
+    where: { id: { in: [...new Set(ids)] }, deletedAt: null },
+    select: publicMediaSelect,
+  });
+
+  return new Map(assets.map((asset) => [asset.id, asset]));
+}
+
+export type PublicMedia = Prisma.MediaAssetGetPayload<{
+  select: typeof publicMediaSelect;
+}>;
 
 export async function getMediaAsset(id: string) {
   await requireAuth(CONTENT_ROLES);
