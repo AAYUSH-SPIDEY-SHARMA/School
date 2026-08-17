@@ -127,6 +127,25 @@ enum FacilityCategory {
   SAFETY
 }
 
+/// Where a media asset actually lives.
+///
+/// Cloudinary is the managed store the school uploads into. The other two exist
+/// because the school may already have material in Google Drive or on YouTube —
+/// and a school video can run to gigabytes, which is not something to push
+/// through an image CDN or pay to store twice.
+enum MediaSource {
+  CLOUDINARY
+  GOOGLE_DRIVE
+  YOUTUBE
+  EXTERNAL
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
 enum AuditAction {
   CREATE
   UPDATE
@@ -698,13 +717,37 @@ model Facility {
 // =============================================================================
 
 model MediaAsset {
-  id       String @id @default(cuid())
-  url      String
-  publicId String @unique
+  id String @id @default(cuid())
+
+  /// Where this asset lives. Determines how it is rendered and whether we
+  /// control it at all.
+  source MediaSource @default(CLOUDINARY)
+  kind   MediaKind   @default(IMAGE)
+
+  /// Canonical URL used to display the asset.
+  url String
+
+  /// Cloudinary identifier. NULL for Drive/YouTube assets, which we do not host
+  /// and therefore cannot address this way.
+  publicId String? @unique
+
+  /// The link the school pasted, kept verbatim so it can be re-parsed or shown
+  /// back to them if it stops working.
+  externalUrl String?
+
+  /// Parsed provider id — a Drive file id or a YouTube video id.
+  externalId String?
+
+  /// Poster image for a video. For YouTube this is derived from the video id;
+  /// for Drive it is the thumbnail endpoint.
+  thumbnailUrl String?
+
+  /// Videos only.
+  durationSeconds Int?
 
   fileName String
   mimeType String
-  fileSize Int
+  fileSize Int @default(0)
 
   /// Images only. Present so width/height can be emitted and CLS avoided.
   width  Int?
@@ -727,6 +770,10 @@ model MediaAsset {
 
   /// Confirms EXIF/GPS stripping actually ran for this asset, so the control
   /// is auditable per-asset rather than merely configured once.
+  ///
+  /// ⚠️ Always false for Drive/YouTube assets: we did not process those files
+  /// and cannot claim their metadata was stripped. Claiming otherwise would be
+  /// an unverified compliance statement, which the working rules forbid.
   metadataStripped Boolean @default(false)
 
   uploadedById String?
@@ -751,6 +798,7 @@ model MediaAsset {
   @@index([mimeType, createdAt(sort: Desc)])
   @@index([containsMinors])
   @@index([deletedAt])
+  @@index([source, kind])
   @@map("media_assets")
 }
 

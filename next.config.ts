@@ -53,13 +53,34 @@ const nextConfig: NextConfig = {
 
   images: {
     // `images.domains` is deprecated in the Next.js 16 line — remotePatterns only.
+    //
+    // Kept in step with ALLOWED_MEDIA_HOSTS in lib/media/externalMedia.ts.
+    // Adding a host in one place and not the other produces media that
+    // validates and then refuses to render.
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-        pathname: '/**',
-      },
+      { protocol: 'https', hostname: 'res.cloudinary.com', pathname: '/**' },
+      // Google Drive images, added because the school may already hold
+      // material there rather than uploading it again.
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'drive.google.com', pathname: '/**' },
+      // YouTube poster frames.
+      { protocol: 'https', hostname: 'i.ytimg.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'img.youtube.com', pathname: '/**' },
     ],
+
+    /**
+     * ⚠️ Owner instruction: full quality, no lossy recompression.
+     *
+     * `qualities: [100]` means Next's own optimiser never reduces quality.
+     * Cloudinary masters are additionally served with no transformation at all
+     * for the full-size view (lib/media/urls.ts).
+     *
+     * The cost is honest and worth stating: full-quality images are large, and
+     * the performance target is LCP ≤2.5s at p75 on a mid-range Android over 4G
+     * (27_PERFORMANCE). Grid tiles are therefore width-limited — resized, never
+     * recompressed — while the full view is the untouched original.
+     */
+    qualities: [100],
     formats: ['image/avif', 'image/webp'],
     // Primary persona is on a mid-range Android phone over 4G (04_USER_PERSONAS),
     // so the small end of this list matters more than the large end.
