@@ -253,6 +253,164 @@ export async function listAlbumsForAdmin(options: AdminListOptions = {}) {
   return { items, total, page, pageCount: Math.max(1, Math.ceil(total / take)) };
 }
 
+export async function getEventForEdit(id: string) {
+  await requireAuth(CONTENT_ROLES);
+
+  return db.event.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      venue: true,
+      coverImageId: true,
+      isAcademicCalendar: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+    },
+  });
+}
+
+export async function getFacultyForEdit(id: string) {
+  await requireAuth(CONTENT_ROLES);
+
+  return db.faculty.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      designation: true,
+      qualification: true,
+      experienceYears: true,
+      bio: true,
+      photoId: true,
+      departmentId: true,
+      isLeadership: true,
+      displayOrder: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+    },
+  });
+}
+
+export async function listAchievementsForAdmin(options: AdminListOptions = {}) {
+  await requireAuth(CONTENT_ROLES);
+
+  const { page, take, skip } = paginate(options);
+
+  const where: Prisma.AchievementWhereInput = {
+    deletedAt: null,
+    ...(options.status ? { status: options.status } : {}),
+  };
+
+  const [items, total] = await Promise.all([
+    db.achievement.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        level: true,
+        achievedOn: true,
+        featured: true,
+        status: true,
+      },
+      orderBy: { achievedOn: 'desc' },
+      take,
+      skip,
+    }),
+    db.achievement.count({ where }),
+  ]);
+
+  return { items, total, page, pageCount: Math.max(1, Math.ceil(total / take)) };
+}
+
+export async function getAchievementForEdit(id: string) {
+  await requireAuth(CONTENT_ROLES);
+
+  return db.achievement.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      type: true,
+      achieverName: true,
+      level: true,
+      achievedOn: true,
+      imageId: true,
+      featured: true,
+      status: true,
+    },
+  });
+}
+
+export async function listTestimonialsForAdmin(options: AdminListOptions = {}) {
+  await requireAuth(CONTENT_ROLES);
+
+  const { page, take, skip } = paginate(options);
+
+  const where: Prisma.TestimonialWhereInput = {
+    deletedAt: null,
+    ...(options.status ? { status: options.status } : {}),
+  };
+
+  const [items, total] = await Promise.all([
+    db.testimonial.findMany({
+      where,
+      select: {
+        id: true,
+        quote: true,
+        authorName: true,
+        authorType: true,
+        authorDetail: true,
+        featured: true,
+        status: true,
+      },
+      orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+      take,
+      skip,
+    }),
+    db.testimonial.count({ where }),
+  ]);
+
+  return { items, total, page, pageCount: Math.max(1, Math.ceil(total / take)) };
+}
+
+export async function getTestimonialForEdit(id: string) {
+  await requireAuth(CONTENT_ROLES);
+
+  return db.testimonial.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      id: true,
+      quote: true,
+      authorName: true,
+      authorType: true,
+      authorDetail: true,
+      photoId: true,
+      featured: true,
+      status: true,
+    },
+  });
+}
+
+/** Departments, for the faculty form's grouping select. */
+export async function listDepartments() {
+  await requireAuth(CONTENT_ROLES);
+
+  return db.department.findMany({
+    select: { id: true, name: true },
+    orderBy: { displayOrder: 'asc' },
+  });
+}
+
 /**
  * Dashboard counts.
  *

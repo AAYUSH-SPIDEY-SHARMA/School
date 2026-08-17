@@ -83,7 +83,8 @@ const config = [
   },
 
   {
-    files: ['tests/**/*.{ts,tsx}'],
+    // Verification scripts print their results — that is their entire output.
+    files: ['tests/**/*.{ts,tsx,mjs,js}'],
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

@@ -125,6 +125,7 @@ export const noticeSchema = z.object({
 export const noticeUpdateSchema = noticeSchema.extend({ id: cuid });
 
 export type NoticeFormValues = z.input<typeof noticeSchema>;
+export type NoticeInput = z.output<typeof noticeSchema>;
 
 /* ── Gallery ──────────────────────────────────────────────────────────────── */
 
@@ -292,11 +293,23 @@ export const publishSchema = z.object({
  */
 export type NewsFormValues = z.input<typeof newsSchema>;
 export type NewsInput = z.output<typeof newsSchema>;
-export type EventInput = z.infer<typeof eventSchema>;
-export type NoticeInput = z.infer<typeof noticeSchema>;
-export type AlbumInput = z.infer<typeof albumSchema>;
-export type FacultyInput = z.infer<typeof facultySchema>;
-export type AchievementInput = z.infer<typeof achievementSchema>;
-export type DocumentInput = z.infer<typeof documentSchema>;
-export type TestimonialInput = z.infer<typeof testimonialSchema>;
-export type FacilityInput = z.infer<typeof facilitySchema>;
+
+export type EventFormValues = z.input<typeof eventSchema>;
+export type EventInput = z.output<typeof eventSchema>;
+
+export type AlbumFormValues = z.input<typeof albumSchema>;
+export type AlbumInput = z.output<typeof albumSchema>;
+
+export type FacultyFormValues = z.input<typeof facultySchema>;
+export type FacultyInput = z.output<typeof facultySchema>;
+
+export type AchievementFormValues = z.input<typeof achievementSchema>;
+export type AchievementInput = z.output<typeof achievementSchema>;
+
+export type DocumentFormValues = z.input<typeof documentSchema>;
+export type DocumentInput = z.output<typeof documentSchema>;
+
+export type TestimonialFormValues = z.input<typeof testimonialSchema>;
+export type TestimonialInput = z.output<typeof testimonialSchema>;
+
+export type FacilityInput = z.output<typeof facilitySchema>;
