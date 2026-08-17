@@ -146,6 +146,54 @@ enum MediaKind {
   DOCUMENT
 }
 
+/// The catalogue of section types a page can be composed from.
+///
+/// ⚠️ This is a FIXED CATALOGUE, not a blank canvas (ADR-0012). The school
+/// chooses which sections appear, in what order, and what goes in them. It
+/// cannot invent new section types, nest sections arbitrarily, or write raw
+/// CSS — which is precisely what keeps every page coherent, responsive and
+/// accessible however it is rearranged.
+///
+/// Adding a type here is additive and disturbs no existing page.
+enum SectionType {
+  /// Large opening block: eyebrow, headline, text, up to two buttons.
+  HERO
+  /// Headed prose. The general-purpose text section.
+  RICH_TEXT
+  /// Image beside text, image left or right.
+  IMAGE_TEXT
+  /// Numbers with labels — the trust band.
+  STATS_BAND
+  /// A row of linked cards with icon, title and description.
+  CARD_GRID
+  /// Full-width navy block with a heading and buttons.
+  CTA_BAND
+  /// Question and answer pairs.
+  FAQ
+  /// Ordered steps — an admissions process, a timeline.
+  STEPS
+  /// A single embedded video, Cloudinary or YouTube or Drive.
+  VIDEO
+  /// Pulls live content from the CMS rather than holding its own.
+  NEWS_LIST
+  NOTICE_LIST
+  EVENT_LIST
+  GALLERY_PREVIEW
+  FACULTY_LIST
+  TESTIMONIALS
+  ACHIEVEMENTS
+  DOCUMENT_LIST
+  FACILITIES
+  /// Contact details and map.
+  CONTACT_INFO
+  /// The admission enquiry form.
+  ENQUIRY_FORM
+  /// A free image, at full quality.
+  IMAGE
+  /// Visual separator.
+  SPACER
+}
+
 enum AuditAction {
   CREATE
   UPDATE
@@ -191,6 +239,7 @@ model User {
   // their audit trail, which defeats the purpose of having one.
 
   sessions      Session[]
+  pages         Page[]
   news          News[]
   events        Event[]
   notices       Notice[]
@@ -785,6 +834,7 @@ model MediaAsset {
   uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
 
   galleryImages GalleryImage[]
+  pageOgImages  Page[]        @relation("PageOgImage")
   newsCovers    News[]
   eventCovers   Event[]
   albumCovers   GalleryAlbum[]
@@ -866,6 +916,109 @@ model AuditLog {
   @@index([actorId, createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+// =============================================================================
+// PAGE COMPOSITION — three infrastructure tables, added by ADR-0012.
+//
+// ⚠️ These are NOT among the 18 domain entities and are not new domain
+// concepts. They exist because the owner reversed the "no page builder"
+// rejection (D-E) on 2026-08-17 and asked for full control of every section,
+// text and link, including ordering. Recorded in ADR-0012, never added
+// silently. No domain entity was added, removed or merged.
+// =============================================================================
+
+model Page {
+  id    String @id @default(cuid())
+  /// Path without the leading slash. "" is the homepage.
+  slug  String @unique
+  title String
+
+  /// Short description for the admin listing, not shown publicly.
+  adminNote String?
+
+  /// ⚠️ System pages cannot be deleted — the site would 404 on a route the
+  /// navigation still points at. Their sections remain fully editable.
+  isSystem Boolean @default(false)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  seoTitle       String?
+  seoDescription String?
+  ogImageId      String?
+
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  createdBy User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  ogImage   MediaAsset?   @relation("PageOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+  sections  PageSection[]
+
+  @@index([status, deletedAt])
+  @@map("pages")
+}
+
+model PageSection {
+  id     String @id @default(cuid())
+  pageId String
+
+  type SectionType
+
+  /// Position on the page. The whole point of the feature — the school
+  /// reorders sections without a developer.
+  displayOrder Int @default(0)
+
+  /// Hide a section without deleting it, so seasonal content can be brought
+  /// back rather than retyped.
+  isVisible Boolean @default(true)
+
+  /// Typed payload for this section type.
+  ///
+  /// JSON because each type has a different field set, and seventeen nullable
+  /// columns would be worse. Its shape is validated by a Zod schema per type in
+  /// the Server Action, exactly as every other write is — the database holds it,
+  /// the application guarantees it.
+  content Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, displayOrder])
+  @@map("page_sections")
+}
+
+model NavItem {
+  id String @id @default(cuid())
+
+  label String
+  /// Internal path or absolute URL.
+  href  String
+
+  /// Self-relation for dropdowns. One level only — a school site does not need
+  /// a third level, and a parent cannot hold fourteen options in their head.
+  parentId String?
+
+  displayOrder Int     @default(0)
+  isVisible    Boolean @default(true)
+
+  /// Which menu this belongs to.
+  location String @default("primary")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   NavItem?  @relation("NavChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children NavItem[] @relation("NavChildren")
+
+  @@index([location, displayOrder])
+  @@index([parentId, displayOrder])
+  @@map("nav_items")
 }
 
 // =============================================================================
