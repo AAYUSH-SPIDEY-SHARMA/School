@@ -52,6 +52,12 @@ export const publicMediaSelect = {
   caption: true,
   width: true,
   height: true,
+  // Needed to decide how to render: a Cloudinary image, a Drive image, or a
+  // YouTube video behind a click-to-play facade.
+  source: true,
+  kind: true,
+  externalId: true,
+  thumbnailUrl: true,
 } as const satisfies Prisma.MediaAssetSelect;
 
 /** Media in the admin library, where consent state must be visible. */
