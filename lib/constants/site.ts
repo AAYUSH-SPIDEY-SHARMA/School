@@ -19,15 +19,35 @@
 
 export const PLACEHOLDER_PREFIX = '[';
 
-/** Every school-owned fact the site needs, as an unmistakable token. */
+/**
+ * ── CONFIRMED SCHOOL FACTS ───────────────────────────────────────────────────
+ *
+ * Supplied directly by the owner on 2026-08-17. These are the ONLY school
+ * facts that are real; everything else below remains a placeholder token.
+ *
+ * Note on the name: "Secondary School" is consistent with the Nursery–Class 10
+ * invariant. In the Indian system secondary ends at Class 10; Classes 11–12 are
+ * *senior* secondary, which this school does not serve.
+ */
+export const SCHOOL_CONFIRMED = {
+  name: 'Muskan Scientific Convent Secondary School',
+  addressLine: 'Karera, Bhilwara',
+  city: 'Bhilwara',
+  state: 'Rajasthan',
+  postalCode: '311804',
+  fullAddress: 'Karera, Bhilwara, Rajasthan 311804',
+} as const;
+
+/** Every school-owned fact the site needs. Confirmed values where known. */
 export const SCHOOL_PLACEHOLDERS = {
-  name: '[SCHOOL_NAME]',
-  shortName: '[SCHOOL_SHORT_NAME]',
+  name: SCHOOL_CONFIRMED.name,
+  shortName: 'Muskan Scientific Convent',
+  // ⚠️ Still unknown — the school's own strapline, not one invented here.
   tagline: '[SCHOOL_TAGLINE]',
-  address: '[SCHOOL_ADDRESS]',
-  city: '[CITY]',
-  state: '[STATE]',
-  postalCode: '[POSTAL_CODE]',
+  address: SCHOOL_CONFIRMED.fullAddress,
+  city: SCHOOL_CONFIRMED.city,
+  state: SCHOOL_CONFIRMED.state,
+  postalCode: SCHOOL_CONFIRMED.postalCode,
   phone: '[PHONE_NUMBER]',
   alternatePhone: '[ALTERNATE_PHONE_NUMBER]',
   email: '[EMAIL]',

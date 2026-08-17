@@ -49,3 +49,9 @@ Thumbs.db
 
 # prisma — generated client output
 prisma/generated/
+
+# Design reference images dropped in the project root.
+# Kept out of git for size; the decisions they informed live in
+# BLUEPRINT/10_DESIGN_SYSTEM.md, which is the durable record.
+/Gemini_Generated_Image*.png
+/*.reference.png

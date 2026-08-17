@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Source_Serif_4 } from 'next/font/google';
 
+import { BOARD, SCHOOL_CONFIRMED } from '@/lib/constants/site';
+
 import './globals.css';
 
 /**
@@ -32,15 +34,19 @@ export const viewport: Viewport = {
   // Never disable zoom — pinch-zoom is an accessibility necessity, not a
   // design inconvenience (WCAG 1.4.4).
   maximumScale: 5,
-  themeColor: '#2c3a52',
+  // Matches --color-ink (navy-800), so the mobile browser chrome continues the
+  // header band rather than cutting across it.
+  themeColor: '#182746',
 };
 
 export const metadata: Metadata = {
-  // ⚠️ Placeholder title. The school's real name is not known (OD-001).
   title: {
-    default: '[SCHOOL_NAME]',
-    template: '%s · [SCHOOL_NAME]',
+    default: `${SCHOOL_CONFIRMED.name} · ${BOARD} school in ${SCHOOL_CONFIRMED.city}`,
+    template: `%s · ${SCHOOL_CONFIRMED.name}`,
   },
+  // ⚠️ Still a placeholder: the school's own strapline has not been supplied,
+  // and a description invented here would be the school describing itself in
+  // words it never chose.
   description: '[SCHOOL_TAGLINE]',
   formatDetection: {
     // A phone number that is not a link is a friction point for the primary

@@ -4,7 +4,7 @@ import { hash } from '@node-rs/argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
-import { SCHOOL_PLACEHOLDERS } from '../lib/constants/site';
+import { SCHOOL_CONFIRMED, SCHOOL_PLACEHOLDERS } from '../lib/constants/site';
 
 /**
  * Database seed.
@@ -101,16 +101,40 @@ const DEPARTMENTS = [
   { name: 'Arts', slug: 'arts', displayOrder: 9 },
 ];
 
+/**
+ * Keys whose values are CONFIRMED FACTS supplied by the owner, not defaults.
+ *
+ * These are refreshed on every seed run, because a corrected fact should
+ * propagate. Every other key is created once and then left alone, so re-seeding
+ * never clobbers something the school has typed in through Settings.
+ */
+const CONFIRMED_KEYS = new Set([
+  'school.name',
+  'school.shortName',
+  'school.address',
+  'school.city',
+  'school.state',
+  'school.postalCode',
+]);
+
 async function seedSiteSettings(): Promise<void> {
   for (const setting of SITE_SETTINGS) {
-    // upsert, so re-running never clobbers a real value the school has entered.
     await prisma.siteSetting.upsert({
       where: { key: setting.key },
-      update: {},
+      update: CONFIRMED_KEYS.has(setting.key) ? { value: setting.value } : {},
       create: setting,
     });
   }
-  console.warn(`  ✓ ${SITE_SETTINGS.length} site settings (all placeholders)`);
+
+  const placeholders = SITE_SETTINGS.filter((setting) =>
+    setting.value.startsWith('['),
+  ).length;
+
+  console.warn(
+    `  ✓ ${SITE_SETTINGS.length} site settings ` +
+      `(${CONFIRMED_KEYS.size} confirmed facts, ${placeholders} still placeholders)`,
+  );
+  console.warn(`  ✓ school: ${SCHOOL_CONFIRMED.name}`);
 }
 
 async function seedDepartments(): Promise<void> {

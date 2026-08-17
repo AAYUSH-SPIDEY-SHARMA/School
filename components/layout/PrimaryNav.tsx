@@ -25,7 +25,7 @@ export function PrimaryNav() {
             <li key={item.href} className="group relative">
               <Link
                 href={item.href}
-                className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-body-sm font-medium text-foreground transition-colors hover:text-primary group-focus-within:text-primary"
+                className="relative inline-flex items-center gap-1 rounded-md px-3 py-2 text-body-sm font-medium text-foreground transition-colors after:absolute after:inset-x-3 after:-bottom-0.5 after:h-0.5 after:origin-left after:scale-x-0 after:bg-accent after:transition-transform after:duration-(--duration-base) hover:text-primary group-hover:after:scale-x-100 group-focus-within:text-primary group-focus-within:after:scale-x-100 motion-reduce:after:transition-none"
               >
                 {item.label}
                 {children ? (
@@ -49,12 +49,12 @@ export function PrimaryNav() {
                   {/* A small bridge, so the pointer can travel from the trigger
                       to the panel without crossing a gap that closes it. */}
                   <div className="h-2" aria-hidden="true" />
-                  <ul className="min-w-60 rounded-lg border border-border bg-surface p-2 shadow-lg">
+                  <ul className="min-w-64 rounded-lg border border-border bg-surface-raised p-2 shadow-lg ring-1 ring-gold-500/10">
                     {children.map((child) => (
                       <li key={child.href}>
                         <Link
                           href={child.href}
-                          className="block rounded-md px-3 py-2 text-body-sm text-foreground-muted transition-colors hover:bg-surface-sunken hover:text-primary focus-visible:bg-surface-sunken"
+                          className="block rounded-md px-3 py-2.5 text-body-sm text-foreground-muted transition-colors hover:bg-surface-sunken hover:text-primary focus-visible:bg-surface-sunken"
                         >
                           {child.label}
                         </Link>

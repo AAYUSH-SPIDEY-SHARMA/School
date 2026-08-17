@@ -1,49 +1,85 @@
 @import 'tailwindcss';
 
 /* =============================================================================
-   DESIGN TOKENS  —  ⚠️ PROVISIONAL PALETTE
+   DESIGN TOKENS
    =============================================================================
 
-   Every colour value below is a PLACEHOLDER (BLUEPRINT/10_DESIGN_SYSTEM).
+   ⚠️ STILL PROVISIONAL as to the school's own brand: the logo has not been
+   supplied (OD-002), so these are not derived from it.
 
-   A school's palette must derive from its logo, uniform, signage and prospectus.
-   None of those have been supplied yet (OD-001, OD-002). This is a coherent
-   starting system, not the school's identity.
+   Revised 2026-08-17 after owner review. The first pass read flat and
+   clinical, and the reason was structural rather than a matter of taste:
 
-   Because components consume only the SEMANTIC tokens further down, re-theming
-   when the real brand assets arrive is a change to this one file — not a
-   rewrite. Do not reintroduce hard-coded colours in components (NFR-073).
+     1. the page background was a COOL near-white (a blue-tinted grey), which
+        reads clinical rather than academic;
+     2. nothing anchored the page — no large blocks of colour anywhere;
+     3. gold existed as a token but was almost never used.
 
-   Colour space is OKLCH: perceptually uniform, so equal lightness values look
-   equally light across hues, which makes accessible palettes far more reliable
-   than HSL.
+   The revision fixes all three:
+
+     1. the base is now a warm CREAM/parchment;
+     2. deep navy "ink" surfaces anchor the hero, CTA bands and footer;
+     3. gold carries eyebrows, display accents, rules, statistics and the
+        hairline frames around photography.
+
+   ── The gold contrast question, now RESOLVED ─────────────────────────────────
+
+   10_DESIGN_SYSTEM left open "whether accent gold passes contrast as a CTA
+   background, or is demoted to decorative use" (open design decision 6).
+
+   Answer: **gold is decorative and light-on-dark; it is never a CTA
+   background, and never small text on cream.** A mid gold on a cream field
+   cannot reach 4.5:1 without darkening into brown and losing the quality that
+   makes it worth having. So:
+
+     • gold on NAVY        → display text, eyebrows, statistics   ✅ high contrast
+     • gold on CREAM       → rules, borders, frames, icons only   ✅ 3:1 non-text
+     • `accent-ink` (dark gold) → the one gold permitted as small text on cream
+     • CTAs                → solid royal blue or navy, white text ✅
+
+   Accessibility wins over palette preference. This is that rule applied, not
+   set aside.
    ========================================================================== */
 
 @theme {
-  /* ── Primitives — PROVISIONAL ─────────────────────────────────────────── */
-  --color-navy-50: oklch(0.97 0.012 250);
-  --color-navy-100: oklch(0.93 0.028 250);
-  --color-navy-200: oklch(0.86 0.052 250);
-  --color-navy-300: oklch(0.74 0.084 250);
-  --color-navy-400: oklch(0.62 0.112 252);
-  --color-navy-500: oklch(0.52 0.128 254);
-  --color-navy-600: oklch(0.43 0.124 256);
-  --color-navy-700: oklch(0.35 0.108 258);
-  --color-navy-800: oklch(0.27 0.084 260);
-  --color-navy-900: oklch(0.2 0.06 262);
-  --color-navy-950: oklch(0.15 0.042 264);
+  /* ── Cream / parchment — the warm base ────────────────────────────────── */
+  --color-cream-50: oklch(0.991 0.008 80);
+  --color-cream-100: oklch(0.972 0.018 78);
+  --color-cream-200: oklch(0.948 0.028 76);
+  --color-cream-300: oklch(0.905 0.038 74);
+  --color-cream-400: oklch(0.85 0.045 72);
 
-  --color-gold-50: oklch(0.97 0.022 85);
-  --color-gold-100: oklch(0.94 0.046 84);
-  --color-gold-200: oklch(0.89 0.082 83);
-  --color-gold-300: oklch(0.83 0.116 82);
-  --color-gold-400: oklch(0.77 0.14 80);
-  --color-gold-500: oklch(0.7 0.148 78);
-  --color-gold-600: oklch(0.61 0.136 76);
-  --color-gold-700: oklch(0.5 0.114 74);
-  --color-gold-800: oklch(0.4 0.09 72);
-  --color-gold-900: oklch(0.32 0.07 70);
+  /* ── Navy — deep, slightly richer than before so large blocks feel solid ─ */
+  --color-navy-50: oklch(0.96 0.014 262);
+  --color-navy-100: oklch(0.92 0.03 262);
+  --color-navy-200: oklch(0.85 0.058 263);
+  --color-navy-300: oklch(0.73 0.09 264);
+  --color-navy-400: oklch(0.6 0.12 265);
+  --color-navy-500: oklch(0.49 0.135 265);
+  --color-navy-600: oklch(0.4 0.125 265);
+  --color-navy-700: oklch(0.32 0.105 264);
+  --color-navy-800: oklch(0.255 0.085 264);
+  --color-navy-900: oklch(0.2 0.068 264);
+  --color-navy-950: oklch(0.15 0.05 264);
 
+  /* ── Gold — brighter and brassier than the first pass ─────────────────── */
+  --color-gold-100: oklch(0.955 0.04 86);
+  --color-gold-200: oklch(0.91 0.075 85);
+  --color-gold-300: oklch(0.86 0.108 85);
+  --color-gold-400: oklch(0.82 0.128 84);
+  --color-gold-500: oklch(0.765 0.142 84);
+  --color-gold-600: oklch(0.7 0.14 82);
+  --color-gold-700: oklch(0.6 0.125 78);
+  --color-gold-800: oklch(0.48 0.1 74);
+  --color-gold-900: oklch(0.38 0.078 72);
+
+  /* ── Royal blue — the call-to-action colour ───────────────────────────── */
+  --color-royal-400: oklch(0.62 0.17 265);
+  --color-royal-500: oklch(0.54 0.19 265);
+  --color-royal-600: oklch(0.47 0.185 265);
+  --color-royal-700: oklch(0.41 0.165 265);
+
+  /* ── Neutrals — kept for admin surfaces, which stay cool and quiet ────── */
   --color-neutral-0: oklch(1 0 0);
   --color-neutral-50: oklch(0.98 0.003 250);
   --color-neutral-100: oklch(0.96 0.005 250);
@@ -56,79 +92,93 @@
   --color-neutral-800: oklch(0.26 0.008 250);
   --color-neutral-900: oklch(0.18 0.006 250);
 
-  --color-success: oklch(0.58 0.13 155);
-  --color-success-soft: oklch(0.95 0.03 155);
-  --color-warning: oklch(0.72 0.15 75);
-  --color-warning-soft: oklch(0.96 0.04 75);
-  --color-error: oklch(0.55 0.19 27);
+  --color-success: oklch(0.55 0.13 155);
+  --color-success-soft: oklch(0.95 0.035 155);
+  --color-warning: oklch(0.7 0.15 75);
+  --color-warning-soft: oklch(0.96 0.045 78);
+  --color-error: oklch(0.53 0.19 27);
   --color-error-soft: oklch(0.96 0.03 27);
-  --color-info: oklch(0.58 0.12 240);
-  --color-info-soft: oklch(0.95 0.03 240);
+  --color-info: oklch(0.55 0.13 250);
+  --color-info-soft: oklch(0.95 0.03 250);
 
   /* ── Semantic — components use ONLY these ─────────────────────────────── */
-  --color-primary: var(--color-navy-700);
-  --color-primary-hover: var(--color-navy-800);
-  --color-primary-foreground: var(--color-neutral-0);
 
-  /* ⚠️ Warm golds frequently fail 4.5:1 as a text background. If `accent`
-     fails measurement, it is demoted to a decorative/border colour and CTAs
-     use `primary`. Accessibility wins over palette preference. Not yet
-     measured — see 26_ACCESSIBILITY. */
-  --color-accent: var(--color-gold-600);
-  --color-accent-hover: var(--color-gold-700);
-  --color-accent-foreground: var(--color-neutral-0);
+  /* Brand + primary text */
+  --color-primary: var(--color-navy-800);
+  --color-primary-hover: var(--color-navy-900);
+  --color-primary-foreground: var(--color-cream-50);
 
-  --color-background: var(--color-neutral-50);
-  --color-surface: var(--color-neutral-0);
-  --color-surface-raised: var(--color-neutral-0);
-  --color-surface-sunken: var(--color-neutral-100);
+  /* The call to action. Blue, not gold — see the contrast note above. */
+  --color-cta: var(--color-royal-500);
+  --color-cta-hover: var(--color-royal-600);
+  --color-cta-foreground: oklch(1 0 0);
 
-  --color-foreground: var(--color-neutral-900);
-  --color-foreground-muted: var(--color-neutral-600);
-  --color-foreground-subtle: var(--color-neutral-500);
+  /* Gold: decorative, and text ONLY on dark. */
+  --color-accent: var(--color-gold-500);
+  --color-accent-strong: var(--color-gold-400);
+  /* The one gold dark enough to sit as small text on cream. */
+  --color-accent-ink: var(--color-gold-800);
 
-  --color-border: var(--color-neutral-200);
-  --color-border-strong: var(--color-neutral-300);
-  --color-ring: var(--color-navy-500);
+  /* Surfaces */
+  --color-background: var(--color-cream-100);
+  --color-surface: var(--color-cream-50);
+  --color-surface-raised: oklch(1 0 0);
+  --color-surface-sunken: var(--color-cream-200);
+
+  /* "Ink" — the deep navy blocks that anchor the page. */
+  --color-ink: var(--color-navy-800);
+  --color-ink-deep: var(--color-navy-950);
+  --color-ink-foreground: var(--color-cream-100);
+  --color-ink-muted: var(--color-navy-200);
+
+  /* Text */
+  --color-foreground: var(--color-navy-900);
+  --color-foreground-muted: oklch(0.44 0.028 265);
+  --color-foreground-subtle: oklch(0.56 0.022 265);
+
+  /* Lines */
+  --color-border: var(--color-cream-300);
+  --color-border-strong: var(--color-cream-400);
+  --color-border-gold: var(--color-gold-400);
+  --color-ring: var(--color-royal-500);
 
   /* ── Typography ───────────────────────────────────────────────────────── */
-  /* Self-hosted via next/font — no third-party font CDN at runtime. */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', Roboto, sans-serif;
   --font-serif: var(--font-source-serif), ui-serif, Georgia, Cambria, serif;
 
-  /* Fluid type scale, clamped between 320px and 1440px viewports. */
-  --text-display: clamp(2.5rem, 1.6rem + 4.5vw, 4.5rem);
-  --text-display--line-height: 1.05;
-  --text-display--font-weight: 600;
+  /* Larger and more confident than the first pass — the reference carries its
+     quality on type scale as much as on colour. */
+  --text-display: clamp(2.75rem, 1.5rem + 5.6vw, 5.5rem);
+  --text-display--line-height: 1;
+  --text-display--font-weight: 700;
   --text-display--letter-spacing: -0.02em;
 
-  --text-h1: clamp(2rem, 1.5rem + 2.5vw, 3rem);
-  --text-h1--line-height: 1.15;
-  --text-h1--font-weight: 600;
-  --text-h1--letter-spacing: -0.015em;
+  --text-h1: clamp(2.125rem, 1.5rem + 3vw, 3.5rem);
+  --text-h1--line-height: 1.1;
+  --text-h1--font-weight: 700;
+  --text-h1--letter-spacing: -0.018em;
 
-  --text-h2: clamp(1.5rem, 1.2rem + 1.5vw, 2.25rem);
-  --text-h2--line-height: 1.25;
+  --text-h2: clamp(1.625rem, 1.2rem + 1.9vw, 2.5rem);
+  --text-h2--line-height: 1.2;
   --text-h2--font-weight: 600;
-  --text-h2--letter-spacing: -0.01em;
+  --text-h2--letter-spacing: -0.012em;
 
-  --text-h3: clamp(1.25rem, 1.1rem + 0.75vw, 1.75rem);
-  --text-h3--line-height: 1.3;
+  --text-h3: clamp(1.3rem, 1.1rem + 0.9vw, 1.875rem);
+  --text-h3--line-height: 1.28;
   --text-h3--font-weight: 600;
 
-  --text-h4: clamp(1.125rem, 1.05rem + 0.375vw, 1.375rem);
+  --text-h4: clamp(1.125rem, 1.05rem + 0.4vw, 1.375rem);
   --text-h4--line-height: 1.4;
   --text-h4--font-weight: 600;
 
-  --text-body-lg: clamp(1.125rem, 1.08rem + 0.22vw, 1.25rem);
+  --text-body-lg: clamp(1.125rem, 1.06rem + 0.3vw, 1.3rem);
   --text-body-lg--line-height: 1.65;
 
-  /* Never below 16px on mobile. */
   --text-body: clamp(1rem, 0.99rem + 0.05vw, 1.0625rem);
   --text-body--line-height: 1.7;
 
-  --text-body-sm: 0.875rem;
+  --text-body-sm: 0.9375rem;
   --text-body-sm--line-height: 1.6;
 
   --text-caption: 0.8125rem;
@@ -138,43 +188,40 @@
   --text-label--line-height: 1.4;
   --text-label--font-weight: 500;
 
+  /* Eyebrow text — small, uppercase, widely tracked. Carries much of the
+     "institution" register in the reference. */
   --text-overline: 0.75rem;
   --text-overline--line-height: 1.3;
-  --text-overline--font-weight: 600;
-  --text-overline--letter-spacing: 0.08em;
+  --text-overline--font-weight: 700;
+  --text-overline--letter-spacing: 0.16em;
 
-  /* ── Spacing — 4px base ───────────────────────────────────────────────── */
+  /* ── Spacing / layout ─────────────────────────────────────────────────── */
   --spacing: 0.25rem;
-
-  /* ── Layout ───────────────────────────────────────────────────────────── */
   --container-prose: 68ch;
-  --container-2xl: 90rem; /* 1440px — default page maximum */
+  --container-2xl: 90rem;
 
-  /* ── Radius ───────────────────────────────────────────────────────────── */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 24px;
+  /* ── Radius — restrained; large radii read consumer-app, not institution ─ */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 20px;
 
-  /* ── Elevation ────────────────────────────────────────────────────────── */
-  /* Tinted toward the primary hue — neutral-black shadows look muddy over
-     warm photography. */
-  --shadow-xs: 0 1px 2px 0 oklch(0.2 0.06 262 / 0.05);
-  --shadow-sm: 0 1px 3px 0 oklch(0.2 0.06 262 / 0.08),
-    0 1px 2px -1px oklch(0.2 0.06 262 / 0.06);
-  --shadow-md: 0 4px 12px -2px oklch(0.2 0.06 262 / 0.1),
-    0 2px 4px -2px oklch(0.2 0.06 262 / 0.06);
-  --shadow-lg: 0 12px 24px -6px oklch(0.2 0.06 262 / 0.12),
-    0 4px 8px -4px oklch(0.2 0.06 262 / 0.08);
-  --shadow-xl: 0 24px 48px -12px oklch(0.2 0.06 262 / 0.18);
+  /* ── Elevation — warm-tinted, never neutral black over cream ──────────── */
+  --shadow-xs: 0 1px 2px 0 oklch(0.38 0.078 72 / 0.06);
+  --shadow-sm: 0 1px 3px 0 oklch(0.38 0.078 72 / 0.08),
+    0 1px 2px -1px oklch(0.38 0.078 72 / 0.06);
+  --shadow-md: 0 6px 16px -4px oklch(0.3 0.07 268 / 0.12),
+    0 2px 6px -2px oklch(0.3 0.07 268 / 0.08);
+  --shadow-lg: 0 14px 32px -8px oklch(0.3 0.07 268 / 0.16),
+    0 4px 10px -4px oklch(0.3 0.07 268 / 0.1);
+  --shadow-xl: 0 28px 56px -14px oklch(0.25 0.07 268 / 0.24);
 
   /* ── Motion ───────────────────────────────────────────────────────────── */
   --duration-fast: 150ms;
   --duration-base: 250ms;
   --duration-slow: 400ms;
   --duration-slower: 600ms;
-
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
@@ -192,8 +239,7 @@
 
   html {
     scroll-behavior: smooth;
-    /* Anchored headings must not hide under the sticky header. */
-    scroll-padding-top: 6rem;
+    scroll-padding-top: 7rem;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -215,7 +261,7 @@
   h5,
   h6 {
     font-family: var(--font-serif);
-    color: var(--color-foreground);
+    color: var(--color-primary);
     text-wrap: balance;
   }
 
@@ -223,20 +269,17 @@
     text-wrap: pretty;
   }
 
-  /* A visible focus indicator on every interactive element, always.
-     WCAG 2.2 AA — 2.4.11 Focus Not Obscured, 2.4.13 Focus Appearance. */
+  /* WCAG 2.2 — 2.4.11 Focus Not Obscured, 2.4.13 Focus Appearance. */
   :focus-visible {
     outline: 3px solid var(--color-ring);
     outline-offset: 2px;
     border-radius: var(--radius-sm);
   }
 
-  /* Never remove the outline without replacing it. */
   :focus:not(:focus-visible) {
     outline: none;
   }
 
-  /* Images degrade gracefully rather than breaking layout. */
   img,
   picture,
   video,
@@ -246,7 +289,6 @@
     max-width: 100%;
   }
 
-  /* Inputs do not inherit font by default. */
   input,
   button,
   textarea,
@@ -255,8 +297,7 @@
     color: inherit;
   }
 
-  /* Long words (a pasted URL in a notice body) must not force a horizontal
-     scrollbar on a 320px phone. */
+  /* A pasted URL in a notice must not force a horizontal scrollbar at 320px. */
   p,
   li,
   h1,
@@ -264,6 +305,11 @@
   h3,
   h4 {
     overflow-wrap: break-word;
+  }
+
+  ::selection {
+    background-color: var(--color-gold-300);
+    color: var(--color-navy-900);
   }
 
   [hidden] {
@@ -276,8 +322,6 @@
    ========================================================================== */
 
 @layer utilities {
-  /* Visually hidden but available to screen readers. Used by the skip link,
-     form status regions and icon-only control labels. */
   .sr-only {
     position: absolute;
     width: 1px;
@@ -301,36 +345,87 @@
     white-space: normal;
   }
 
-  /* Long-form reading measure — 65–75 characters. */
   .prose-measure {
     max-width: var(--container-prose);
   }
 
-  /* Section rhythm: 64px mobile → 96px tablet → 128px desktop. Generous
-     vertical space is the primary carrier of the "premium" quality. */
+  /* Section rhythm. Generous vertical space is the main carrier of the
+     "premium" quality — cramped sections read cheap regardless of palette. */
   .section-y {
-    padding-block: 4rem;
+    padding-block: 4.5rem;
   }
 
   @media (min-width: 768px) {
     .section-y {
-      padding-block: 6rem;
+      padding-block: 6.5rem;
     }
   }
 
   @media (min-width: 1280px) {
     .section-y {
-      padding-block: 8rem;
+      padding-block: 8.5rem;
     }
+  }
+
+  /* The page gutter, so every section aligns to the same measure. */
+  .shell {
+    margin-inline: auto;
+    max-width: var(--container-2xl);
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .shell {
+      padding-inline: 2rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .shell {
+      padding-inline: 3rem;
+    }
+  }
+
+  /* A deep navy block. Used for the hero, CTA bands and the footer — the
+     anchors the first pass was missing entirely. */
+  .ink-surface {
+    background-color: var(--color-ink);
+    color: var(--color-ink-foreground);
+  }
+
+  .ink-surface :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--color-cream-50);
+  }
+
+  /* The gold hairline frame around photography, straight from the reference.
+     Cheap to render, and it does a lot of the "considered" work. */
+  .gold-frame {
+    border: 1px solid var(--color-border-gold);
+    outline: 6px solid var(--color-surface);
+    outline-offset: -8px;
+  }
+
+  /* Short gold rule under a section heading. */
+  .gold-rule::after {
+    content: '';
+    display: block;
+    width: 3.5rem;
+    height: 2px;
+    margin-block-start: 1rem;
+    background-color: var(--color-accent);
+  }
+
+  .gold-rule-center::after {
+    margin-inline: auto;
   }
 }
 
 /* =============================================================================
    SCROLL REVEAL
    =============================================================================
-   Content is VISIBLE BY DEFAULT and animated as an enhancement. It is never
-   hidden at opacity 0 awaiting a script — if JavaScript fails or motion is
-   reduced, the content must still be there (NFR-016, NFR-030).
+   Content is VISIBLE BY DEFAULT and animated as an enhancement — never hidden
+   at opacity 0 awaiting a script. If JavaScript fails or motion is reduced, the
+   content must still be there (NFR-016, NFR-030).
    ========================================================================== */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -346,7 +441,7 @@
 @keyframes reveal-rise {
   from {
     opacity: 0;
-    transform: translateY(1rem);
+    transform: translateY(1.25rem);
   }
   to {
     opacity: 1;
@@ -385,6 +480,11 @@
   header nav,
   footer {
     display: none !important;
+  }
+
+  .ink-surface {
+    background: #fff !important;
+    color: #000 !important;
   }
 
   a[href^='http']::after {

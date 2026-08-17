@@ -128,9 +128,11 @@ export function MobileNav() {
           </nav>
 
           <div className="border-t border-border p-4">
+            {/* Royal blue, not gold — gold cannot reach 4.5:1 behind white
+                text without turning brown (see components/ui/Button.tsx). */}
             <Link
               href={ADMISSIONS_CTA.href}
-              className="flex min-h-12 w-full items-center justify-center rounded-md bg-accent px-5 font-medium text-accent-foreground hover:bg-accent-hover"
+              className="flex min-h-12 w-full items-center justify-center rounded-md bg-cta px-5 font-medium text-cta-foreground shadow-sm transition-colors hover:bg-cta-hover"
             >
               {ADMISSIONS_CTA.label}
             </Link>

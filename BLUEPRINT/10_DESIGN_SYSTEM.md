@@ -68,7 +68,40 @@ Primitive tokens   →   Semantic tokens   →   Components
 --color-gold-500       --color-accent        Badge
 ```
 
-### Provisional palette
+### ⚠️ Revised 2026-08-17 — the implemented palette differs from the block below
+
+The palette below is the **original discovery-phase proposal**, retained because it is what the rest of this document was written against. The palette actually implemented in `app/globals.css` was revised after owner review of the first build.
+
+**Why it changed.** The first implementation read flat and clinical, and the cause was structural rather than a matter of taste:
+
+| Problem | Cause | Fix |
+|---|---|---|
+| Page felt cold and generic | Background was `neutral-50` — a **cool, blue-tinted near-white** | Base is now a **warm cream/parchment** |
+| Nothing anchored the page | No large blocks of colour anywhere; every section was white | **Deep navy "ink" surfaces** for hero, CTA bands and footer |
+| Palette looked unused | Gold was defined but almost never rendered | Gold now carries **eyebrows, display accents, rules, statistics and photo frames** |
+
+The token *structure* is unchanged — components still consume semantic tokens only, and re-theming when the school's logo arrives is still a one-file change. Only the values and their application moved.
+
+**Open design decision 6 is now RESOLVED.** The question was "whether accent gold passes contrast as a CTA background, or is demoted to decorative use."
+
+> **Answer: gold is decorative and light-on-dark. It is never a CTA background, and never small text on cream.**
+>
+> A gold light enough to read as gold cannot reach 4.5:1 behind white text; darkening it until it can turns it brown and loses the quality worth having. So:
+>
+> - gold on **navy** → display text, eyebrows, statistics ✅
+> - gold on **cream** → rules, borders, frames, icons only ✅ (3:1 non-text)
+> - `accent-ink` (gold-800) → the one gold dark enough for small text on cream
+> - **CTAs are royal blue or navy with white text** ✅
+>
+> This is the document's own rule — *accessibility wins over palette preference* — applied rather than set aside.
+
+`--color-cta` (royal blue) was added as a semantic token for exactly this reason. There is deliberately **no gold button variant** in `components/ui/Button.tsx`.
+
+⚠️ Still provisional as to the school's **own** brand: the logo has not been supplied (OD-002), so none of this is derived from it.
+
+---
+
+### Provisional palette *(original proposal — superseded, see above)*
 
 ```css
 @theme {
@@ -384,4 +417,17 @@ Tracked in [39_OPEN_DECISIONS](39_OPEN_DECISIONS.md).
 3. Final typeface pairing (may be constrained by existing brand usage)
 4. Whether Devanagari coverage is required
 5. Whether the school has existing photography or a shoot must be commissioned
-6. Whether accent gold passes contrast as a CTA background, or is demoted to decorative use
+6. ~~Whether accent gold passes contrast as a CTA background, or is demoted to decorative use~~ — ✅ **RESOLVED 2026-08-17: decorative and light-on-dark only; CTAs are royal blue.** See the revision note above.
+
+### Confirmed school identity
+
+Supplied by the owner 2026-08-17 and now rendered as fact rather than placeholder:
+
+| Field | Value |
+|---|---|
+| Name | **Muskan Scientific Convent Secondary School** |
+| Location | Karera, Bhilwara, Rajasthan 311804 |
+
+> "Secondary School" is consistent with the Nursery–Class 10 invariant. In the Indian system secondary ends at Class 10; Classes 11–12 are *senior* secondary, which this school does not serve. The invariant is unaffected.
+
+Everything else — tagline, phone, email, principal, affiliation number, statistics, fees — remains a visible placeholder.
